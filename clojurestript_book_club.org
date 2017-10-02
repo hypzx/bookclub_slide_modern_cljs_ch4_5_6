@@ -1,0 +1,349 @@
+#+TITLE: Modern ClojureScript
+#+SUBTITLE: Here Is Subtitle
+#+DATE: <2017-09-27 Wed>
+#+AUTHOR: hyp
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline
+#+OPTIONS: author:t c:nil creator:comment d:(not "LOGBOOK") date:t
+#+OPTIONS: e:t email:nil f:t inline:t num:nil p:nil pri:nil stat:t
+#+OPTIONS: tags:t tasks:t tex:t timestamp:t toc:nil todo:t |:t
+#+DESCRIPTION:
+#+EXCLUDE_TAGS: noexport
+#+KEYWORDS:
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+
+* CH4
+  :PROPERTIES:
+  :SLIDE:    segue dark quote
+  :ASIDE:    right bottom
+  :ARTICLE:  flexbox vleft auto-fadein
+  :END:
+** login validate
+   - Server-side only validation
+   - Client-side validation
+   - Ajax in action
+
+** login.html
+   #+BEGIN_SRC html
+     <!-- login.html -->
+     <form action="login.php" method="post" id="loginForm">
+       <fieldset>
+         <legend>Login</legend>
+         <!-- login.html 2 -->
+
+       </fieldset>
+     </form>
+         #+END_SRC
+   
+** login.html 2
+   #+BEGIN_SRC html
+     <div>
+       <label for="email">Email Address</label>
+       <input type="email" name="email" id="email" required>
+     </div>
+
+     <div>
+       <label for="password">Password</label>
+       <input type="password" name="password" id="password"
+              required>
+     </div>
+
+     <div>
+       <label for="submit"></label>
+       <input type="submit" value="Login &rarr;" id="submit">
+     </div>
+   #+END_SRC
+   
+** Immediate Feedback Development Environment (IFDE)
+   - Emacs + Cider
+     1. M-x ~cider-jack-in~
+     2. ~(def p (future (boot (dev)))~
+
+   - run boot task
+     1. start terminal
+     2. ~boot dev~
+     3. start another terminal
+     4. ~boot repl -c~
+
+   - in clojure repl
+       ~(start-repl)~
+
+** cider-boot-parameters
+   在 .dir-local 下設定:
+   #+BEGIN_SRC emacs-lisp
+     ((nil
+       (cider-boot-parameters . "repl -s -H :: wait dev")))
+   #+END_SRC
+   cider-jack-in 後會自己啟動
+   
+** browser object in bREPL
+  | javascript      | bREPL       |
+  |-----------------+-------------|
+  | window          | js/window   |
+  | window.document | js/document |
+  | console         | js/console  |
+
+    #+BEGIN_SRC clojurescript
+      (js/console.log "Hello World!")
+    #+END_SRC
+   
+    browser
+    #+BEGIN_EXAMPLE
+    > Hello World!
+    #+END_EXAMPLE
+    
+** getElementById
+   
+    #+BEGIN_SRC javascript
+      document.getElementById("loginForm");
+    #+END_SRC
+    
+    #+BEGIN_SRC clojurescript
+      (.getElementById js/document "loginForm")
+    #+END_SRC
+    
+*** 取得 HTML tag 的 property  
+    ClojureScript 中用 .- 這個 special form 取得 Html tag 的 property (屬性)，eg:
+    #+BEGIN_SRC clojurescript
+      (.-value (.getElementById js/document "email"))
+    #+END_SRC
+    
+    要設定值到 Html tag property 上是用 clojure way -- set!
+    #+BEGIN_SRC clojurescript
+      (set! (.-value (.getElementById js/document "email")) "new@mail")
+    #+END_SRC
+    
+    得到值 (String) 後可以用 count function 算字數
+    #+BEGIN_SRC clojurescript
+      (count (.-value (.getElementById js/document "email")))
+    #+END_SRC
+   
+*** coldnew 補充 
+
+    也可以用
+    #+BEGIN_SRC clojurescript
+      (aget  (.getElementById js/document "email") "value")
+    #+END_SRC
+    
+** validate-form
+   #+BEGIN_SRC clojurescript
+     ;; src/cljs/modern_cljs/login.cljs
+     (ns modern-cljs.login)
+
+     ;; define the function to be attached to form submission event
+     (defn validate-form []
+       ;; get email and password element from their ids in the HTML form
+       (let [email (.getElementById js/document "email")
+             password (.getElementById js/document "password")]
+         (if (and (> (count (.-value email)) 0)
+                  (> (count (.-value password)) 0))
+           true
+           (do (js/alert "Please, complete the form!")
+               false))))
+   #+END_SRC
+   
+** doc & source
+   - 在 clojurescript 中同樣可以用 doc function 查 function 功能
+   - 也可以用 source function 查 function 的 source code
+
+** main.cljs.edn
+   clojurescript 下的 webpack (可能只有 js 功能)，在 html/js 下，
+   只要在 :require 後的 vector 中加入要一起 build 的 namespace 即可:
+   #+BEGIN_SRC clojurescript
+      {:require [modern-cljs.core modern-cljs.login modern-cljs.shopping]
+       :compiler-options {:asset-path "js/main.out"}}
+   #+END_SRC
+    
+   這樣會把 modern-cljs.core、modern-cljs.login、modern-cljs.shopping 這三個 namespace 的 function 一起 build 到 main 中。
+    
+** init
+   #+BEGIN_SRC clojurescript
+     ;; define the function to attach validate-form to onsubmit event of
+     ;; the form
+     (defn init []
+       ;; verify that js/document exists and that it has a getElementById
+       ;; property
+       (if (and js/document
+                (.-getElementById js/document))
+         ;; get loginForm by element id and set its onsubmit property to
+         ;; our validate-form function
+         (let [login-form (.getElementById js/document "loginForm")]
+           (set! (.-onsubmit login-form) validate-form))))
+   #+END_SRC
+
+** browser 的 window onload 
+   在 ClojureScript 中要設定 onload 屬性的方式:
+   #+BEGIN_SRC clojurescript
+      (set! (.-onload js/window) init)
+   #+END_SRC
+   會同等於:
+   #+BEGIN_SRC javascript
+      window.onload = init;
+   #+END_SRC
+    
+* CH5
+  :PROPERTIES:
+  :SLIDE:    segue dark quote
+  :ASIDE:    right bottom
+  :ARTICLE:  flexbox vleft auto-fadein
+  :END:
+  
+** Domina
+   "a jQuery like library"
+    
+   jQuery 的特點是 CSS Selecter，在 Domina 中也有:
+   - xpath (domina.xpath)
+   - sel (domina.css)
+
+   但也有 by-id, value, set-value! (domina.core) 這種方便使用的 function。
+   by-id, id 是 建立在 Google Closure Library 上的 function，它還會 check 參數是不是字串。
+   
+** howto
+   
+   build.boot:
+   #+BEGIN_SRC clojure
+     (set-env!
+      ...
+      :dependencies '[
+                      ;;...
+                      [org.clojars.magomimmo/domina "2.0.0-SNAPSHOT"]
+                      ])
+   #+END_SRC
+
+** howto 2
+    在 bREPL 中使用:
+    #+BEGIN_SRC clojurescript
+      (require '[domina.core :refer [by-id value set-value!]])
+    #+END_SRC
+    
+    #+BEGIN_SRC clojurescript
+      ;; origin
+      (.-value (.getElementById js/document "email"))
+
+      ;; after use domina
+      (value (by-id "email"))
+
+      ;; origin
+      (set! (.-value (.getElementById js/document "email")) "test@mail")
+
+      ;; after use domina
+      (set-value! (by-id "email") "test@mail")
+    #+END_SRC
+
+** update login.cljs
+   #+BEGIN_SRC clojurescript
+     (ns modern-cljs.login
+       (:require [domina.core :refer [by-id value]]))
+
+     (defn validate-form []
+       (if (and (> (count (value (by-id "email"))) 0)
+                (> (count (value (by-id "password"))) 0))
+         true
+         (do (js/alert "Please, complete the form!")
+             false)))
+   #+END_SRC
+   
+** shopping
+   [[https://github.com/magomimmo/modern-cljs/blob/master/doc/second-edition/tutorial-05.md#pure-htmlcss-page][shopping.html]]
+   #+BEGIN_SRC clojurescript
+     (ns modern-cljs.shopping
+       (:require [domina.core :refer [by-id value set-value!]]))
+
+     (defn calculate []
+       (let [quantity (value (by-id "quantity"))
+             price (value (by-id "price"))
+             tax (value (by-id "tax"))
+             discount (value (by-id "discount"))]
+         (set-value! (by-id "total") (-> (* quantity price)
+                                         (* (+ 1 (/ tax 100)))
+                                         (- discount)
+                                         (.toFixed 2)))
+         false))
+     ;; shopping 2
+   #+END_SRC
+   
+** shopping 2
+   #+BEGIN_SRC clojurescript
+     (defn init []
+       (if (and js/document
+                (.-getElementById js/document))
+         (let [the-form (by-id "shoppingForm")]
+           (set! (.-onsubmit the-form) calculate))))
+
+     (set! (.-onload js/window) init)
+   #+END_SRC
+   
+** main.cljs.edn
+   #+BEGIN_SRC clojurescript
+      {:require [modern-cljs.core modern-cljs.login modern-cljs.shopping]
+       :compiler-options {:asset-path "js/main.out"}}
+   #+END_SRC
+   
+** 從 shopping.html 再回 login.html 
+   會發現 (.-onsubmit (by-id "loginForm")) 被改成 shopping_validate了
+   所以要在 bREPL 中:
+   #+BEGIN_SRC clojurescript
+     (require '[modern_cljs.login :as l] :reload)
+     (l/init)
+   #+END_SRC
+   
+* CH6
+  :PROPERTIES:
+  :SLIDE:    segue dark quote
+  :ASIDE:    right bottom
+  :ARTICLE:  flexbox vleft auto-fadein
+  :END:
+  
+** Google Closure Compiler
+   在 build.boot 中 ~:source-paths~ 的設定會讓 GCSL 把該 path 下的 cljs compile，
+   
+   #+BEGIN_SRC clojure
+     (set-env!
+      :source-paths #{"src/cljs"}
+      :resource-paths #{"html"}
+
+      ;; ....
+      )
+
+   #+END_SRC
+   
+** mutability
+   in ~login.cljs~ & ~shopping.cljs~
+   #+BEGIN_SRC clojurescript
+   (set! (.-onload js/window) init)
+   #+END_SRC
+    
+** ^:export
+   #+BEGIN_SRC clojurescript
+      ;; the rest as before
+      (defn ^:export init []
+        (if (and js/document
+                 (.-getElementById js/document))
+          ;; get loginForm by element id and set its onsubmit property to
+          ;; validate-form function
+          (let [login-form (by-id "loginForm")]
+            (set! (.-onsubmit login-form) validate-form))))
+
+      ;; (set! (.-onload js/window) init)
+   #+END_SRC
+    
+   #+BEGIN_SRC html
+      <script src="js/main.js"></script>
+      <script>modern_cljs.login.init();</script>
+   #+END_SRC
+    
+** boot-cljs
+   每次有增減 namespace 就要改 main.cljs.edn，太煩煩了，新的 boot-cljs 可以不用 
+   main.cljs.edn:
+   1. 刪除 html/js
+   2. 把 html 中的 <script src="js/main.js"></script> 改為 <script src="main.js"></script>
+
+
+* Thank You ˊ・ω・ˋ
+:PROPERTIES:
+:SLIDE: thank-you-slide segue
+:ASIDE: right
+:ARTICLE: flexbox vleft auto-fadein
+:END:
+
+* Footnotes
